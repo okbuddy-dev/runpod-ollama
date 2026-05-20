@@ -1,4 +1,4 @@
-FROM runpod/base:1.0.2-cuda1300-ubuntu2404
+FROM runpod/base:1.0.2-cuda1281-ubuntu2404
 
 ARG OLLAMA_VERSION=0.24.0
 ENV OLLAMA_MODELS=/workspace/.ollama/models
