@@ -1,25 +1,43 @@
-name: Build and publish Docker image to GHCR
+name: Build and publish Docker images to GHCR
 
 on:
   push:
     branches: [main]
     paths:
-      - 'docker/**'
+      - 'ollama/**'
       - '.github/workflows/docker-publish.yml'
   pull_request:
     branches: [main]
     paths:
-      - 'docker/**'
+      - 'ollama/**'
       - '.github/workflows/docker-publish.yml'
   workflow_dispatch:
+    inputs:
+      image:
+        description: 'Image to build (leave empty to build all)'
+        required: false
+        type: string
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - name: ollama
+            context: ollama
+            file: ollama/Dockerfile
+
+    # Skip unrelated images on manual dispatch when a specific image is requested
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.image == '' ||
+      github.event.inputs.image == matrix.image.name
+
     permissions:
       contents: read
       packages: write
@@ -39,7 +57,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.image.name }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -49,8 +67,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: docker
-          file: docker/Dockerfile
+          context: ${{ matrix.image.context }}
+          file: ${{ matrix.image.file }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
