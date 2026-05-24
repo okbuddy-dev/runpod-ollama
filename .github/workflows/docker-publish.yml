@@ -32,12 +32,6 @@ jobs:
             context: ollama
             file: ollama/Dockerfile
 
-    # Skip unrelated images on manual dispatch when a specific image is requested
-    if: |
-      github.event_name != 'workflow_dispatch' ||
-      github.event.inputs.image == '' ||
-      github.event.inputs.image == matrix.image.name
-
     permissions:
       contents: read
       packages: write
@@ -65,6 +59,10 @@ jobs:
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and push Docker image
+        if: |
+          github.event_name != 'workflow_dispatch' ||
+          github.event.inputs.image == '' ||
+          github.event.inputs.image == matrix.image.name
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.image.context }}
